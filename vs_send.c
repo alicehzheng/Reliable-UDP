@@ -25,7 +25,7 @@
 /* Prototypes */
 int usage();
 int filesender(int fd, void *arg);
-void send_file(char *filename);
+void send_file();
 int eventhandler(rudp_socket_t rsocket, rudp_event_t event, struct sockaddr_in *remote);
 
 /* Global variables */
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
     usage();
   }
 
- 
+  send_file();
 
   eventloop(0);
   return 0;
@@ -145,10 +145,6 @@ void send_file() {
   int p;
   rudp_socket_t rsock;
 
-  if ((file = open(filename, O_RDONLY)) < 0) {
-    perror("vs_sender: open");
-    exit(-1);
-  }
   rsock = rudp_socket(0);
   if (rsock == NULL) {
     fprintf(stderr, "vs_send: rudp_socket() failed\n");
@@ -159,7 +155,6 @@ void send_file() {
   vs.vs_type = htonl(VS_TYPE_BEGIN);
 
   /* strip of any leading path name */
-  filename1 = filename;
   if (strrchr(filename1, '/'))
     filename1 = strrchr(filename1, '/') + 1;
   
