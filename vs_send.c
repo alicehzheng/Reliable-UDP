@@ -96,10 +96,7 @@ int main(int argc, char* argv[]) {
     usage();
   }
 
-  /* Launch senders for each file */
-  while (i < argc) { 
-    send_file(argv[i++]);
-  }
+ 
 
   eventloop(0);
   return 0;
@@ -139,10 +136,10 @@ int eventhandler(rudp_socket_t rsocket, rudp_event_t event, struct sockaddr_in *
  * file data
  */
 
-void send_file(char *filename) {
+void send_file() {
   struct vsftp vs;
   int vslen;
-  char *filename1;
+  char *filename1 = "stdin";
   int namelen;
   int file = 0;
   int p;
@@ -201,13 +198,13 @@ int filesender(int file, void *arg) {
   int vslen;
   int p;
 
-  bytes = read(file, &vs.vs_info.vs_data,VS_MAXDATA);
+  bytes = read(STDIN_FILENO, &vs.vs_info.vs_data,VS_MAXDATA);
   if (bytes < 0) {
   perror("filesender: read");
   event_fd_delete(filesender, rsock);
   rudp_close(rsock);    
   }
-  else if (bytes == 0) {
+  else if (bytes == 1) {
   vs.vs_type = htonl(VS_TYPE_END);
   vslen = sizeof(vs.vs_type);
   for (p = 0; p < npeers; p++) {
