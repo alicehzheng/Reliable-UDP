@@ -107,21 +107,6 @@ int main(int argc, char* argv[]) {
   
   return 0;
 }
-
-/*
- * getmessage: get one line of message from stdin and save it to array no longer than lim characters
- */
-bool getmessage(char mes[],int lim){
-    int c, i = 0;
-    if((c=getchar()) == 27)
-        return false;//if ESC is pressed, terminate client
-    else
-        mes[i++] = c;
-    while ((c=getchar()) != EOF && c != '\n' && i < lim -1 )
-        mes[i++] = c;
-    mes[i] = '\0';
-    return true;
-}
 /* 
  * eventhandler: callback function for RUDP events
  */
@@ -156,7 +141,7 @@ int eventhandler(rudp_socket_t rsocket, rudp_event_t event, struct sockaddr_in *
 void send_message(){
     struct vsftp vs;
     int vslen;
-    char *filename1 = "stdin";
+    char *filename = "stdin";
     int namelen;
     int file = 0;
     int p;
@@ -171,8 +156,8 @@ void send_message(){
     
     vs.vs_type = htonl(VS_TYPE_BEGIN);
     
-    namelen = strlen(filename1) < VS_FILENAMELENGTH  ? strlen(filename1) : VS_FILENAMELENGTH;
-    strncpy(vs.vs_info.vs_filename, filename1, namelen);
+    namelen = strlen(filename) < VS_FILENAMELENGTH  ? strlen(filename) : VS_FILENAMELENGTH;
+    strncpy(vs.vs_info.vs_filename, filename, namelen);
     
     vslen = sizeof(vs.vs_type) + namelen;
     for (p = 0; p < npeers; p++) {
@@ -188,9 +173,9 @@ void send_message(){
         }
     }
     
-
+    int bytes = -1;
     while((bytes = read(STDIN_FILENO, &vs.vs_info.vs_data,VS_MAXDATA)) > 0){
-        if (bytes == 1 && vs.vs_info.vs_data[0] == 27) {
+        if (bytes == 1) {
             vs.vs_type = htonl(VS_TYPE_END);
             vslen = sizeof(vs.vs_type);
             for (p = 0; p < npeers; p++) {
