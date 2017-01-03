@@ -1,0 +1,13 @@
+vs_recv.c:
+	line226~243: comment out file name operation
+	line249~155: comment out file name operation
+	line265~272: comment out file operation
+	line273~275: print message received in data packet to screen
+vs_send.c:
+	line28: modify the prototype of send_file()
+	line36~40: modify the usage instruction
+	line99: replace multiple file operation with one send_file()
+	line142: modify filename1
+	line148~151: comment out file operation
+	line200: read one line from STDIN
+	line206: modify exiting condition

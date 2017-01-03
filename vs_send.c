@@ -1,4 +1,4 @@
-/* 
+/*
  * vs_send: A simple RUDP sender that can be used to transfer files.
  * Arguments: destination address * (dot quadded or host.domain),  
  * remote port number, and a list of files
@@ -25,7 +25,7 @@
 /* Prototypes */
 int usage();
 int filesender(int fd, void *arg);
-void send_file(char *filename);
+void send_file();/*Advanced ver:modified prototype*/
 int eventhandler(rudp_socket_t rsocket, rudp_event_t event, struct sockaddr_in *remote);
 
 /* Global variables */
@@ -33,9 +33,9 @@ int debug = 0;  /* Debug flag */
 struct sockaddr_in peers[MAXPEERS];  /* IP address and port */
 int npeers = 0;  /* Number of elements in peers */
 
-/* usage: how to use program */
+/* Advaced ver: modified usage: how to use program */
 int usage() {
-  fprintf(stderr, "Usage: vs_send [-d] host1:port1 [host2:port2] ... file1 [file2]... \n");
+  fprintf(stderr, "To connect to server: vs_send [-d] host1:port1 [host2:port2]\nTo send message: type in short message then press Enter\nTo disconnect: press Enter\n");
   exit(1);
 }
 
@@ -95,11 +95,8 @@ int main(int argc, char* argv[]) {
   if (optind >= argc) {
     usage();
   }
-
-  /* Launch senders for each file */
-  while (i < argc) { 
-    send_file(argv[i++]);
-  }
+  /* Advanced ver */
+  send_file();
 
   eventloop(0);
   return 0;
@@ -139,19 +136,19 @@ int eventhandler(rudp_socket_t rsocket, rudp_event_t event, struct sockaddr_in *
  * file data
  */
 
-void send_file(char *filename) {
+void send_file() {
   struct vsftp vs;
   int vslen;
-  char *filename1;
+  char *filename1 = "stdin"; /*Advanced ver: modified filename1 */
   int namelen;
   int file = 0;
   int p;
   rudp_socket_t rsock;
 
-  if ((file = open(filename, O_RDONLY)) < 0) {
-    perror("vs_sender: open");
-    exit(-1);
-  }
+//    if ((file = open(filename, O_RDONLY)) < 0) {
+//        perror("vs_sender: open");
+//        exit(-1);
+//    }
   rsock = rudp_socket(0);
   if (rsock == NULL) {
     fprintf(stderr, "vs_send: rudp_socket() failed\n");
@@ -162,7 +159,6 @@ void send_file(char *filename) {
   vs.vs_type = htonl(VS_TYPE_BEGIN);
 
   /* strip of any leading path name */
-  filename1 = filename;
   if (strrchr(filename1, '/'))
     filename1 = strrchr(filename1, '/') + 1;
   
@@ -174,7 +170,7 @@ void send_file(char *filename) {
   for (p = 0; p < npeers; p++) {
     if (debug) {
       fprintf(stderr, "vs_send: send BEGIN \"%s\" (%d bytes) to %s:%d\n",
-        filename, vslen, 
+        filename1, vslen, 
         inet_ntoa(peers[p].sin_addr), ntohs(peers[p].sin_port));
     }
     if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
@@ -200,14 +196,14 @@ int filesender(int file, void *arg) {
   struct vsftp vs;
   int vslen;
   int p;
-
-  bytes = read(file, &vs.vs_info.vs_data,VS_MAXDATA);
+  /*Advanced ver: read one line from STDIN */
+  bytes = read(STDIN_FILENO, &vs.vs_info.vs_data,VS_MAXDATA);
   if (bytes < 0) {
   perror("filesender: read");
   event_fd_delete(filesender, rsock);
   rudp_close(rsock);    
   }
-  else if (bytes == 0) {
+  else if (bytes == 1) {/*Advanced ver: exit when just an Enter is pressed*/
   vs.vs_type = htonl(VS_TYPE_END);
   vslen = sizeof(vs.vs_type);
   for (p = 0; p < npeers; p++) {

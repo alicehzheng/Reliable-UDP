@@ -270,7 +270,7 @@ int rudp_receiver(rudp_socket_t rsocket, struct sockaddr_in *remote, char *buf, 
 //  else {
 //    fprintf(stderr, "vs_recv: DATA ignored (file not open)\n");
 //  }
-  /*print message received in data packet to screen*/
+  /*Advanced Ver:print message received in data packet to screen*/
   printf("Received Message from %s:%d:\n",inet_ntoa(remote->sin_addr),ntohs(remote->sin_port));
   printf("%s\n",vs->vs_info.vs_filename);
   break;
