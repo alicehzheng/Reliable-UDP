@@ -1,4 +1,4 @@
-/* 
+/*
  * A simple RUDP receiver to receive files from remote hosts.
  * It takes only one argument - local port to be used.
  */
@@ -223,36 +223,36 @@ int rudp_receiver(rudp_socket_t rsocket, struct sockaddr_in *remote, char *buf, 
   rx = rxfind(remote);
   switch (ntohl(vs->vs_type)) {
   case VS_TYPE_BEGIN:
-  namelen = len - sizeof(vs->vs_type);
-  if (namelen > VS_FILENAMELENGTH)
-    namelen = VS_FILENAMELENGTH;
-  strncpy(rx->name, vs->vs_info.vs_filename, namelen);
-  rx->name[namelen] = '\0'; /* Null terminated */
-
-  /* Verify that file name is valid
-   * Only alpha-numerical, period, dash and
-   * underscore are allowed */
-  for (i = 0; i < namelen; i++) {
-    char c = rx->name[i];
-    if (!(isalnum(c) || c == '.' || c == '_' || c == '-')) {
-    fprintf(stderr, "vs_recv: Illegal file name \"%s\"\n", 
-      rx->name);
-    rudp_close(rsocket);
-    return 0;
-    }
-  }
+//  namelen = len - sizeof(vs->vs_type);
+//  if (namelen > VS_FILENAMELENGTH)
+//    namelen = VS_FILENAMELENGTH;
+//  strncpy(rx->name, vs->vs_info.vs_filename, namelen);
+//  rx->name[namelen] = '\0'; /* Null terminated */
+//
+//  /* Verify that file name is valid
+//   * Only alpha-numerical, period, dash and
+//   * underscore are allowed */
+//  for (i = 0; i < namelen; i++) {
+//    char c = rx->name[i];
+//    if (!(isalnum(c) || c == '.' || c == '_' || c == '-')) {
+//    fprintf(stderr, "vs_recv: Illegal file name \"%s\"\n", 
+//      rx->name);
+//    rudp_close(rsocket);
+//    return 0;
+//    }
+//  }
 
   if (debug) {
     fprintf(stderr, "vs_recv: BEGIN \"%s\" (%d bytes) from %s:%d\n", rx->name, len,
     inet_ntoa(remote->sin_addr), ntohs(remote->sin_port));
   }
-  if ((rx->fd = creat(rx->name, 0644)) < 0) {
-    perror("vs_recv: create");
-    rudp_close(rsocket);
-  }
-  else {
-    rx->fileopen = 1;
-  }
+//  if ((rx->fd = creat(rx->name, 0644)) < 0) {
+//    perror("vs_recv: create");
+//    rudp_close(rsocket);
+//  }
+//  else {
+//    rx->fileopen = 1;
+//  }
   break;
   case VS_TYPE_DATA:
   if (debug) {
@@ -262,25 +262,28 @@ int rudp_receiver(rudp_socket_t rsocket, struct sockaddr_in *remote, char *buf, 
   }
   len -= sizeof(vs->vs_type);
   /* len now is length of payload (data or file name) */
-  if (rx->fileopen) {
-    if ((write(rx->fd, vs->vs_info.vs_filename, len)) < 0) {
-    perror("vs_recv: write");
-    }
-  }
-  else {
-    fprintf(stderr, "vs_recv: DATA ignored (file not open)\n");
-  }
+//  if (rx->fileopen) {
+//    if ((write(rx->fd, vs->vs_info.vs_filename, len)) < 0) {
+//    perror("vs_recv: write");
+//    }
+//  }
+//  else {
+//    fprintf(stderr, "vs_recv: DATA ignored (file not open)\n");
+//  }
+  /*print message received in data packet to screen*/
+  printf("Received Message from %s:%d:\n",inet_ntoa(remote->sin_addr),ntohs(remote->sin_port));
+  printf("%s\n",vs->vs_info.vs_filename);
   break;
   case VS_TYPE_END:
   if (debug) {
     fprintf(stderr, "vs_recv: END (%d bytes) from %s:%d\n",
     len, inet_ntoa(remote->sin_addr), ntohs(remote->sin_port));
   }
-  printf("vs_recv: received end of file \"%s\"\n", rx->name);
-  if (rx->fileopen) {
-    close(rx->fd);
-    rxdel(rx);
-  }
+//  printf("vs_recv: received end of file \"%s\"\n", rx->name);
+//  if (rx->fileopen) {
+//    close(rx->fd);
+//    rxdel(rx);
+//  }
   /* else ignore */
   break;
   default:
