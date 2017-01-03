@@ -166,7 +166,7 @@ void send_file() {
   for (p = 0; p < npeers; p++) {
     if (debug) {
       fprintf(stderr, "vs_send: send BEGIN \"%s\" (%d bytes) to %s:%d\n",
-        filename, vslen, 
+        filename1, vslen, 
         inet_ntoa(peers[p].sin_addr), ntohs(peers[p].sin_port));
     }
     if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
