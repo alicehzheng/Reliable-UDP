@@ -35,7 +35,7 @@ int npeers = 0;  /* Number of elements in peers */
 
 /* usage: how to use program */
 int usage() {
-  fprintf(stderr, "Usage: vs_send [-d] host1:port1 [host2:port2] ... file1 [file2]... \n");
+  fprintf(stderr, "To connect to server: vs_send [-d] host1:port1 [host2:port2]...\nTo send message: type in short message then press Enter\nTo terminate: press Esc\n");
   exit(1);
 }
 
@@ -92,19 +92,36 @@ int main(int argc, char* argv[]) {
   if (npeers == 0)
     usage();
 
-  if (optind >= argc) {
+  if (optind > argc) {
     usage();
   }
 
-  /* Launch senders for each file */
-  while (i < argc) { 
-    send_file(argv[i++]);
-  }
-
+//  /* Launch senders for each file */
+//  while (i < argc) { 
+//    send_file(argv[i++]);
+//  }
+    send_message();
+    
   eventloop(0);
+    
+  
   return 0;
 }
 
+/*
+ * getmessage: get one line of message from stdin and save it to array no longer than lim characters
+ */
+bool getmessage(char mes[],int lim){
+    int c, i = 0;
+    if((c=getchar()) == 27)
+        return false;//if ESC is pressed, terminate client
+    else
+        mes[i++] = c;
+    while ((c=getchar()) != EOF && c != '\n' && i < lim -1 )
+        mes[i++] = c;
+    mes[i] = '\0';
+    return true;
+}
 /* 
  * eventhandler: callback function for RUDP events
  */
@@ -133,113 +150,74 @@ int eventhandler(rudp_socket_t rsocket, rudp_event_t event, struct sockaddr_in *
 }
 
 /*
- * send_file: initiate sending of a file. 
- * Create a RUDP socket for sending. Send the file name to the VS receiver.
- * Register a handler for input event, which will take care of sending
- * file data
+ * send_message: get message from input and send them as DATA packet until ESC is pressed
  */
 
-void send_file(char *filename) {
-  struct vsftp vs;
-  int vslen;
-  char *filename1;
-  int namelen;
-  int file = 0;
-  int p;
-  rudp_socket_t rsock;
+void send_message(){
+    struct vsftp vs;
+    int vslen;
+    char *filename1 = "stdin";
+    int namelen;
+    int file = 0;
+    int p;
+    rudp_socket_t rsock;
 
-  if ((file = open(filename, O_RDONLY)) < 0) {
-    perror("vs_sender: open");
-    exit(-1);
-  }
-  rsock = rudp_socket(0);
-  if (rsock == NULL) {
-    fprintf(stderr, "vs_send: rudp_socket() failed\n");
-    exit(1);
-  }
-  rudp_event_handler(rsock, eventhandler);
-
-  vs.vs_type = htonl(VS_TYPE_BEGIN);
-
-  /* strip of any leading path name */
-  filename1 = filename;
-  if (strrchr(filename1, '/'))
-    filename1 = strrchr(filename1, '/') + 1;
-  
-  /* Copy file name into VS data */
-  namelen = strlen(filename1) < VS_FILENAMELENGTH  ? strlen(filename1) : VS_FILENAMELENGTH;
-  strncpy(vs.vs_info.vs_filename, filename1, namelen);
-
-  vslen = sizeof(vs.vs_type) + namelen;
-  for (p = 0; p < npeers; p++) {
-    if (debug) {
-      fprintf(stderr, "vs_send: send BEGIN \"%s\" (%d bytes) to %s:%d\n",
-        filename, vslen, 
-        inet_ntoa(peers[p].sin_addr), ntohs(peers[p].sin_port));
+    rsock = rudp_socket(0);
+    if (rsock == NULL) {
+        fprintf(stderr, "vs_send: rudp_socket() failed\n");
+        exit(1);
     }
-    if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
-      fprintf(stderr,"rudp_sender: send failure\n");
-      rudp_close(rsock);    
-      return;
-    }
-  }
-  event_fd(file, filesender, rsock, "filesender");
-}
-
-/*
- * filesender: callback function for handling sending of the file.
- * Will be called when data is available on the file (which is always
- * true, until the file is closed...). 
- * Send file data. Detect end of file and tell VS peers that transfer is
- * complete
- */
-
-int filesender(int file, void *arg) {
-  rudp_socket_t rsock =   (rudp_socket_t) arg;
-  int bytes;
-  struct vsftp vs;
-  int vslen;
-  int p;
-
-  bytes = read(file, &vs.vs_info.vs_data,VS_MAXDATA);
-  if (bytes < 0) {
-  perror("filesender: read");
-  event_fd_delete(filesender, rsock);
-  rudp_close(rsock);    
-  }
-  else if (bytes == 0) {
-  vs.vs_type = htonl(VS_TYPE_END);
-  vslen = sizeof(vs.vs_type);
-  for (p = 0; p < npeers; p++) {
-    if (debug) {
-    fprintf(stderr, "vs_send: send END (%d bytes) to %s:%d\n", 
-      vslen, inet_ntoa(peers[p].sin_addr), htons(peers[p].sin_port));
-    }
-    if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
-    fprintf(stderr,"rudp_sender: send failure\n");
-    break;
-    }
-  }
-  event_fd_delete(filesender, rsock);
-  rudp_close(rsock);    
-  }
-  else {
-  vs.vs_type = htonl(VS_TYPE_DATA);
-  vslen = sizeof(vs.vs_type) + bytes;
+    rudp_event_handler(rsock, eventhandler);
+    
+    vs.vs_type = htonl(VS_TYPE_BEGIN);
+    
+    namelen = strlen(filename1) < VS_FILENAMELENGTH  ? strlen(filename1) : VS_FILENAMELENGTH;
+    strncpy(vs.vs_info.vs_filename, filename1, namelen);
+    
+    vslen = sizeof(vs.vs_type) + namelen;
     for (p = 0; p < npeers; p++) {
-      if (debug) {
-        fprintf(stderr, "vs_send: send DATA (%d bytes) to %s:%d\n", 
-        vslen, inet_ntoa(peers[p].sin_addr), htons(peers[p].sin_port));        
-      }
-      if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
-        fprintf(stderr,"rudp_sender: send failure\n");
-        event_fd_delete(filesender, rsock);
-        rudp_close(rsock);    
-        break;
-      }
+        if (debug) {
+            fprintf(stderr, "vs_send: send BEGIN \"%s\" (%d bytes) to %s:%d\n",
+                    filename, vslen,
+                    inet_ntoa(peers[p].sin_addr), ntohs(peers[p].sin_port));
+        }
+        if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
+            fprintf(stderr,"rudp_sender: send failure\n");
+            rudp_close(rsock);    
+            return;
+        }
     }
-  }
-  return 0;
+    
+
+    while((bytes = read(STDIN_FILENO, &vs.vs_info.vs_data,VS_MAXDATA)) > 0){
+        if (bytes == 1 && vs.vs_info.vs_data[0] == 27) {
+            vs.vs_type = htonl(VS_TYPE_END);
+            vslen = sizeof(vs.vs_type);
+            for (p = 0; p < npeers; p++) {
+                if (debug) {
+                    fprintf(stderr, "vs_send: send END (%d bytes) to %s:%d\n",vslen, inet_ntoa(peers[p].sin_addr), htons(peers[p].sin_port));
+                }
+                if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0){
+                    fprintf(stderr,"rudp_sender: send failure\n");
+                    break;
+                }
+            }
+            rudp_close(rsock);
+            break;
+        }
+        vs.vs_type = htonl(VS_TYPE_DATA);
+        vslen = sizeof(vs.vs_type) + bytes;
+        for (p = 0; p < npeers; p++) {
+            if (debug) {
+                fprintf(stderr, "vs_send: send DATA (%d bytes) to %s:%d\n",
+                        vslen, inet_ntoa(peers[p].sin_addr), htons(peers[p].sin_port));
+            }
+            if (rudp_sendto(rsock, (char *) &vs, vslen, &peers[p]) < 0) {
+                fprintf(stderr,"rudp_sender: send failure\n");
+                rudp_close(rsock);
+                break;
+            }
+        }
+    }
+    
 }
-
-
