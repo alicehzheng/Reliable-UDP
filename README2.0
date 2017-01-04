@@ -1,0 +1,11 @@
+README File of Reliable UDP Project By Jiahui Zheng
+Requirements:   Open Source  Can accept and log the info sent by UDP devices   
+Functionality: event.c : For event handling ---  registers callback functions when a file descriptor is called or timeout occurs 
+               rudp.c: For implementing the logic of reliable sending and receiving --- creates socket, sender/receiver sessions; allocates packets; transmit packet; implements callback function when a file descriptor is called or timeout occurs 
+               vs_recv.c: For receiving messages from remote clients and display client info as well as messages  
+               vs_send.c: For sending short messages to remote hosts continuously
+               
+Usage:  Run the server-side code:  vs-recv [-d] port 
+        Run the client-side code: To connect to server: vs-send [-d] host1:port1 [host2:port2] …
+                                  To send message: type in short message( no more than 510 Bytes) then press Enter
+                                  To terminate: press Enter
